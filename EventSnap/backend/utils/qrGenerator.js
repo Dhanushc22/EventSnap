@@ -6,7 +6,6 @@ const fs = require('fs').promises;
 const generateQRCode = async (eventId, options = {}) => {
   try {
     const {
-      baseURL = process.env.FRONTEND_URL || 'http://localhost:3000',
       format = 'base64', // 'base64', 'svg', 'png', 'buffer'
       width = 300,
       margin = 4,
@@ -17,8 +16,13 @@ const generateQRCode = async (eventId, options = {}) => {
       errorCorrectionLevel = 'M' // L, M, Q, H
     } = options;
 
-    // Create the upload URL
-    const uploadURL = `${baseURL}/upload/${eventId}`;
+    // Use FRONTEND_URL from environment (required for production)
+    if (!process.env.FRONTEND_URL) {
+      throw new Error('FRONTEND_URL environment variable is required');
+    }
+
+    // Create the upload URL using the configured frontend URL
+    const uploadURL = `${process.env.FRONTEND_URL}/upload/${eventId}`;
     
     // QR code options
     const qrOptions = {
@@ -111,9 +115,14 @@ const generateEventQRPackage = async (eventId, options = {}) => {
       baseURL
     } = options;
 
+    // Use FRONTEND_URL from environment (required for production)
+    if (!process.env.FRONTEND_URL) {
+      throw new Error('FRONTEND_URL environment variable is required');
+    }
+
     const qrPackage = {
       eventId,
-      uploadURL: `${baseURL || process.env.FRONTEND_URL || 'http://localhost:3000'}/upload/${eventId}`,
+      uploadURL: `${process.env.FRONTEND_URL}/upload/${eventId}`,
       formats: {}
     };
 
@@ -174,13 +183,18 @@ const validateQRCode = async (qrCodeData) => {
 };
 
 // Get QR code info from event ID
-const getQRInfo = (eventId, baseURL) => {
-  const uploadURL = `${baseURL || process.env.FRONTEND_URL || 'http://localhost:3000'}/upload/${eventId}`;
+const getQRInfo = (eventId) => {
+  if (!process.env.FRONTEND_URL) {
+    throw new Error('FRONTEND_URL environment variable is required');
+  }
+  
+  const uploadURL = `${process.env.FRONTEND_URL}/upload/${eventId}`;
+  const galleryURL = `${process.env.FRONTEND_URL}/gallery/${eventId}`;
   
   return {
     eventId,
     uploadURL,
-    galleryURL: `${baseURL || process.env.FRONTEND_URL || 'http://localhost:3000'}/gallery/${eventId}`,
+    galleryURL,
     qrText: uploadURL
   };
 };

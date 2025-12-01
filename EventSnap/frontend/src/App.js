@@ -3,42 +3,83 @@ import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from './context/AuthContext';
 import Navbar from './components/Navbar';
 import LoadingSpinner from './components/LoadingSpinner';
+import { motion, AnimatePresence } from 'framer-motion';
 
 // Pages
 import Home from './pages/Home';
 import Login from './pages/Login';
-import Signup from './pages/Signup';
-import Dashboard from './pages/Dashboard';
-import CreateEvent from './pages/CreateEvent';
+import AdminDashboard from './pages/AdminDashboard';
+import HostDashboard from './pages/HostDashboard';
+import CreateEventPublic from './pages/CreateEventPublic';
 import EventDetails from './pages/EventDetails';
 import PhotoUpload from './pages/PhotoUpload';
 import Gallery from './pages/Gallery';
 
 // Protected Route Component
-const ProtectedRoute = ({ children }) => {
-  const { isAuthenticated, loading } = useAuth();
+const ProtectedRoute = ({ children, requiredType = null }) => {
+  const { isAuthenticated, loading, user } = useAuth();
 
   if (loading) {
     return <LoadingSpinner />;
   }
 
-  return isAuthenticated ? children : <Navigate to="/login" replace />;
+  if (!isAuthenticated) {
+    return <Navigate to="/login" replace />;
+  }
+
+  // Check user type if specified
+  if (requiredType && user?.type !== requiredType) {
+    // Redirect to appropriate dashboard based on user type
+    if (user?.type === 'admin') {
+      return <Navigate to="/admin-dashboard" replace />;
+    } else if (user?.type === 'host') {
+      return <Navigate to="/host-dashboard" replace />;
+    } else {
+      return <Navigate to="/dashboard" replace />;
+    }
+  }
+
+  return children;
 };
 
-// Public Route Component (redirect to dashboard if authenticated)
+// Public Route Component (redirect to appropriate dashboard if authenticated)
 const PublicRoute = ({ children }) => {
-  const { isAuthenticated, loading } = useAuth();
+  const { isAuthenticated, loading, user } = useAuth();
 
   if (loading) {
     return <LoadingSpinner />;
   }
 
-  return !isAuthenticated ? children : <Navigate to="/dashboard" replace />;
+  if (isAuthenticated) {
+    // Redirect to appropriate dashboard based on user type
+    if (user?.type === 'admin') {
+      return <Navigate to="/admin-dashboard" replace />;
+    } else if (user?.type === 'host') {
+      return <Navigate to="/host-dashboard" replace />;
+    } else {
+      return <Navigate to="/dashboard" replace />;
+    }
+  }
+
+  return children;
 };
 
 function App() {
   const { loading } = useAuth();
   const location = useLocation();
+
+  // Page transition variants
+  const pageVariants = {
+    initial: { opacity: 0, y: 20 },
+    animate: { opacity: 1, y: 0 },
+    exit: { opacity: 0, y: -20 }
+  };
+
+  const pageTransition = {
+    type: 'tween',
+    ease: 'anticipate',
+    duration: 0.4
+  };
 
   // Set participant mode when accessing upload/gallery pages
   useEffect(() => {
@@ -105,61 +146,178 @@ function App() {
 
   // Normal mode with navigation for organizers
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen">
       <Navbar />
-      <Routes>
-        {/* Public Routes */}
-        <Route path="/" element={<Home />} />
-        <Route
-          path="/login"
-          element={
-            <PublicRoute>
-              <Login />
-            </PublicRoute>
-          }
-        />
-        <Route
-          path="/signup"
-          element={
-            <PublicRoute>
-              <Signup />
-            </PublicRoute>
-          }
-        />
+      <AnimatePresence mode="wait">
+        <Routes location={location} key={location.pathname}>
+          {/* Public Routes */}
+          <Route 
+            path="/" 
+            element={
+              <motion.div
+                variants={pageVariants}
+                initial="initial"
+                animate="animate"
+                exit="exit"
+                transition={pageTransition}
+              >
+                <Home />
+              </motion.div>
+            } 
+          />
+          <Route
+            path="/login"
+            element={
+              <PublicRoute>
+                <motion.div
+                  variants={pageVariants}
+                  initial="initial"
+                  animate="animate"
+                  exit="exit"
+                  transition={pageTransition}
+                >
+                  <Login />
+                </motion.div>
+              </PublicRoute>
+            }
+          />
+          <Route 
+            path="/create-event" 
+            element={
+              <motion.div
+                variants={pageVariants}
+                initial="initial"
+                animate="animate"
+                exit="exit"
+                transition={pageTransition}
+              >
+                <CreateEventPublic />
+              </motion.div>
+            } 
+          />
 
-        {/* Photo Upload and Gallery - Will trigger participant mode */}
-        <Route path="/upload/:eventId" element={<PhotoUpload />} />
-        <Route path="/gallery/:eventId" element={<Gallery />} />
+          {/* Photo Upload and Gallery - Will trigger participant mode */}
+          <Route 
+            path="/upload/:eventId" 
+            element={
+              <motion.div
+                variants={pageVariants}
+                initial="initial"
+                animate="animate"
+                exit="exit"
+                transition={pageTransition}
+              >
+                <PhotoUpload />
+              </motion.div>
+            } 
+          />
+          <Route 
+            path="/gallery/:eventId" 
+            element={
+              <motion.div
+                variants={pageVariants}
+                initial="initial"
+                animate="animate"
+                exit="exit"
+                transition={pageTransition}
+              >
+                <Gallery />
+              </motion.div>
+            } 
+          />
 
-        {/* Protected Routes */}
-        <Route
-          path="/dashboard"
-          element={
-            <ProtectedRoute>
-              <Dashboard />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/create-event"
-          element={
-            <ProtectedRoute>
-              <CreateEvent />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/event/:id"
-          element={
-            <ProtectedRoute>
-              <EventDetails />
-            </ProtectedRoute>
-          }
-        />
+          {/* Admin Protected Routes */}
+          <Route
+            path="/admin-dashboard"
+            element={
+              <ProtectedRoute requiredType="admin">
+                <motion.div
+                  variants={pageVariants}
+                  initial="initial"
+                  animate="animate"
+                  exit="exit"
+                  transition={pageTransition}
+                >
+                  <AdminDashboard />
+                </motion.div>
+              </ProtectedRoute>
+            }
+          />
 
-        {/* Catch all route */}
-        <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
+          {/* Host Protected Routes */}
+          <Route
+            path="/host-dashboard"
+            element={
+              <ProtectedRoute requiredType="host">
+                <motion.div
+                  variants={pageVariants}
+                  initial="initial"
+                  animate="animate"
+                  exit="exit"
+                  transition={pageTransition}
+                >
+                  <HostDashboard />
+                </motion.div>
+              </ProtectedRoute>
+            }
+          />
+
+          {/* Organizer Dashboard Route */}
+          <Route
+            path="/dashboard"
+            element={
+              <ProtectedRoute>
+                <motion.div
+                  variants={pageVariants}
+                  initial="initial"
+                  animate="animate"
+                  exit="exit"
+                  transition={pageTransition}
+                >
+                  <AdminDashboard />
+                </motion.div>
+              </ProtectedRoute>
+            }
+          />
+
+          {/* Event Details - Admin and Organizer only (not hosts) */}
+          <Route
+            path="/event/:id"
+            element={
+              <ProtectedRoute>
+                <motion.div
+                  variants={pageVariants}
+                  initial="initial"
+                  animate="animate"
+                  exit="exit"
+                  transition={pageTransition}
+                >
+                  <EventDetails />
+                </motion.div>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/event/:id/details"
+            element={
+              <ProtectedRoute requiredType="admin">
+                <motion.div
+                  variants={pageVariants}
+                  initial="initial"
+                  animate="animate"
+                  exit="exit"
+                  transition={pageTransition}
+                >
+                  <EventDetails />
+                </motion.div>
+              </ProtectedRoute>
+            }
+          />
+
+          {/* Catch all route */}
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </AnimatePresence>
     </div>
   );
 }

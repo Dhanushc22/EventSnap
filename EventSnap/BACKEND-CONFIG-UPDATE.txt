@@ -1,0 +1,98 @@
+🔄 BACKEND CONFIGURATION UPDATES
+
+After deploying your frontend to Vercel, follow these steps:
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+📂 FILE TO EDIT:
+  E:\Full Stack Project\EventSnap\backend\.env
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+FIND THIS LINE:
+  
+  FRONTEND_URL=https://isaac-save-gently-issued.trycloudflare.com
+
+REPLACE WITH:
+
+  FRONTEND_URL=https://eventsnap-YOUR-VERCEL-NAME.vercel.app
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+EXAMPLES:
+
+If Vercel gave you: https://eventsnap-abc123.vercel.app
+Then set:           FRONTEND_URL=https://eventsnap-abc123.vercel.app
+
+If Vercel gave you: https://my-project-xyz.vercel.app
+Then set:           FRONTEND_URL=https://my-project-xyz.vercel.app
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+AFTER UPDATING:
+
+1. Save the .env file (Ctrl+S)
+
+2. Stop backend server (Ctrl+C in terminal)
+
+3. Restart backend:
+   cd "E:\Full Stack Project\EventSnap\backend"
+   npm start
+
+4. Verify MongoDB is running
+
+5. Check console output:
+   ✅ Backend running on port 5000
+   ✅ MongoDB connected successfully
+   ✅ No errors in console
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+VERIFY QR CODE URL CHANGED:
+
+1. Go to Admin Dashboard
+2. Click any event
+3. Look at QR code URL - should show:
+   https://eventsnap-YOUR-NAME.vercel.app/upload/EVENT-ID
+   
+4. If still showing old URL:
+   □ Click "Regenerate QR Codes" button
+   □ Refresh page
+   □ Check backend console for errors
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+🎯 ENVIRONMENT VARIABLE EXPLANATION
+
+  FRONTEND_URL = Where users will access your app
+  
+  ✅ Set to Vercel URL = Anyone can scan QR codes
+  ❌ Set to localhost = Only local network users
+  ❌ Set to local IP = Only WiFi users
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+🚨 TROUBLESHOOTING
+
+Issue: QR code still shows old URL
+  → Make sure backend is restarted after .env change
+  → Click "Regenerate QR Codes" button
+  → Refresh admin dashboard page
+
+Issue: Backend won't start
+  → Check MongoDB is running
+  → Make sure .env has valid FRONTEND_URL
+  → Check for typos in the URL
+
+Issue: Frontend can't connect to backend API
+  → Make sure backend FRONTEND_URL matches Vercel domain
+  → Check both are running on correct ports
+  → No firewall blocking port 5000
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Next Steps:
+  1. Update FRONTEND_URL in .env ✓
+  2. Restart backend ✓
+  3. Test QR code generation ✓
+  4. Test on mobile data ✓

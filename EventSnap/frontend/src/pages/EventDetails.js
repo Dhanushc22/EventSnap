@@ -18,7 +18,7 @@ const EventDetails = () => {
     isLoading: eventLoading
   } = useQuery({
     queryKey: ['event', id],
-    queryFn: () => eventsAPI.getById(id)
+    queryFn: () => eventsAPI.getEventDetails(id)
   });
 
   // Fetch event photos
@@ -74,9 +74,17 @@ const EventDetails = () => {
   const getFullPhotoURL = (photoURL) => {
     if (!photoURL) return null;
     if (photoURL.startsWith('http')) return photoURL;
-    const baseURL = process.env.REACT_APP_API_URL || 'http://192.168.0.106:5000/api';
-    const backendURL = baseURL.replace('/api', ''); // Remove /api to get base backend URL
-    return `${backendURL}${photoURL}`;
+    
+    // Get backend base URL from environment variable
+    const apiURL = process.env.REACT_APP_API_URL;
+    
+    if (!apiURL) {
+      console.error('REACT_APP_API_URL environment variable is required');
+      throw new Error('API URL not configured');
+    }
+    const backendBaseURL = apiURL.replace('/api', ''); // Remove /api suffix
+    
+    return `${backendBaseURL}${photoURL}`;
   };
 
   return (

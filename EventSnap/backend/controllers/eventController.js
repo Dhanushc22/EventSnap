@@ -164,10 +164,20 @@ const getEventById = async (req, res) => {
       });
     }
 
+    // Generate QR info URLs - FRONTEND_URL is required
+    if (!process.env.FRONTEND_URL) {
+      throw new Error('FRONTEND_URL environment variable is required');
+    }
+    const qrInfo = {
+      uploadURL: `${process.env.FRONTEND_URL}/upload/${event.eventId}`,
+      galleryURL: `${process.env.FRONTEND_URL}/gallery/${event.eventId}`
+    };
+
     res.status(200).json({
       success: true,
       data: {
-        event
+        event,
+        qrInfo
       }
     });
   } catch (error) {
@@ -269,9 +279,16 @@ const deleteEvent = async (req, res) => {
       });
     }
 
-    // Soft delete (set isActive to false)
-    event.isActive = false;
-    await event.save();
+    // Hard delete - remove event and all associated photos
+    const eventIdValue = event.eventId;
+    
+    // Delete all photos for this event
+    await Photo.deleteMany({ eventId: eventIdValue });
+    
+    // Delete the event
+    await Event.deleteOne({ _id: event._id });
+
+    console.log(`✅ Event deleted: ${eventIdValue}`);
 
     res.status(200).json({
       success: true,

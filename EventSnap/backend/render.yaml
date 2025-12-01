@@ -1,0 +1,39 @@
+services:
+  - type: web
+    name: eventsnap-backend
+    env: node
+    plan: free
+    branch: master
+    buildCommand: npm install
+    startCommand: npm start
+    autoDeploy: true
+    
+    # Environment Variables (set these in Render dashboard)
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 5000
+      - key: MONGODB_URI
+        sync: false
+        # Set this to your MongoDB Atlas connection string
+      - key: JWT_SECRET
+        sync: false
+        # Keep this secret
+      - key: CLOUDINARY_CLOUD_NAME
+        sync: false
+      - key: CLOUDINARY_API_KEY
+        sync: false
+      - key: CLOUDINARY_API_SECRET
+        sync: false
+      - key: FRONTEND_URL
+        value: https://eventsnap-YOUR-NAME.vercel.app
+        # Update with your Vercel frontend URL
+      - key: GMAIL_USER
+        sync: false
+      - key: GMAIL_APP_PASSWORD
+        sync: false
+    
+    # Health check
+    healthCheckPath: /api/health
+    healthCheckInterval: 30

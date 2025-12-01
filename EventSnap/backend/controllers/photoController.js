@@ -152,14 +152,32 @@ const getEventPhotos = async (req, res) => {
       sortOrder = 'desc'
     } = req.query;
 
+    // Check if this is an admin request for status-only access
+    const isAdminStatusOnly = req.path.includes('/admin/') && req.path.includes('/status-only');
+
     // Find event
     let event;
     if (req.user) {
-      // If authenticated, find event by organizer
-      event = await Event.findOne({
-        $or: [{ _id: eventId }, { eventId }],
-        createdBy: req.user._id
-      });
+      if (req.user.type === 'admin') {
+        // Admin can access any event but with restrictions
+        event = await Event.findOne({
+          $or: [{ _id: eventId }, { eventId }]
+        });
+      } else if (req.user.type === 'host') {
+        // Host can only access their own event
+        const EventHost = require('../models/EventHost');
+        const eventHost = await EventHost.findById(req.user._id);
+        event = await Event.findOne({
+          $or: [{ _id: eventId }, { eventId }],
+          hostEventId: eventHost.eventId
+        });
+      } else {
+        // Legacy organizer access
+        event = await Event.findOne({
+          $or: [{ _id: eventId }, { eventId }],
+          createdBy: req.user._id
+        });
+      }
     } else {
       // If not authenticated, find public event
       event = await Event.findOne({
@@ -179,10 +197,28 @@ const getEventPhotos = async (req, res) => {
     const result = await Photo.getPhotosByEvent(event._id, {
       page: parseInt(page),
       limit: parseInt(limit),
-      status: req.user ? null : status, // Organizers see all photos, public sees only approved
+      status: req.user ? null : status, // Authenticated users see all photos, public sees only approved
       sortBy,
-      sortOrder
+      sortOrder,
+      adminStatusOnly: isAdminStatusOnly // For admin, only return metadata without file URLs
     });
+
+    // If admin status-only request, remove photo URLs
+    if (isAdminStatusOnly && result.photos) {
+      result.photos = result.photos.map(photo => ({
+        ...photo.toObject(),
+        filename: undefined,
+        url: undefined,
+        thumbnailUrl: undefined,
+        // Keep only metadata for admin
+        _id: photo._id,
+        uploaderName: photo.uploaderName,
+        uploaderEmail: photo.uploaderEmail,
+        uploadedTime: photo.uploadedTime,
+        status: photo.status,
+        caption: photo.caption
+      }));
+    }
 
     res.status(200).json({
       success: true,

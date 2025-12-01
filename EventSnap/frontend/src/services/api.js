@@ -1,7 +1,12 @@
 import axios from 'axios';
 import Cookies from 'js-cookie';
 
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
+const API_BASE_URL = process.env.REACT_APP_API_URL;
+
+if (!API_BASE_URL) {
+  console.error('❌ REACT_APP_API_URL environment variable is required');
+  throw new Error('API URL not configured. Please set REACT_APP_API_URL in your environment.');
+}
 
 // Create axios instance
 const api = axios.create({
@@ -40,7 +45,6 @@ api.interceptors.response.use(
 
 // Auth API
 export const authAPI = {
-  signup: (data) => api.post('/auth/signup', data),
   login: (data) => api.post('/auth/login', data),
   getProfile: () => api.get('/auth/profile'),
   updateProfile: (data) => api.put('/auth/profile', data),
@@ -50,8 +54,24 @@ export const authAPI = {
 // Events API
 export const eventsAPI = {
   create: (data) => api.post('/events', data),
+  getAdminEvents: (params) => api.get('/events/admin', { params }),
   getOrganizerEvents: (params) => api.get('/events/organizer', { params }),
   getById: (id) => api.get(`/events/organizer/${id}`),
+  getAdminById: (id) => api.get(`/events/admin/${id}`),
+  getEventDetails: async (id) => {
+    // Try admin endpoint first, fall back to organizer endpoint
+    try {
+      const response = await api.get(`/events/admin/${id}`);
+      return response;
+    } catch (error) {
+      if (error.response?.status === 403 || error.response?.status === 401) {
+        // User doesn't have admin access, try organizer endpoint
+        return api.get(`/events/organizer/${id}`);
+      }
+      throw error;
+    }
+  },
+  regenerateQRCodes: () => api.post('/events/admin/regenerate-qr'),
   getByEventId: (eventId) => api.get(`/events/public/${eventId}`),
   getPublicEvent: (eventId) => api.get(`/events/public/${eventId}`),
   update: (id, data) => api.put(`/events/${id}`, data),

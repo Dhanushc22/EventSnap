@@ -45,31 +45,41 @@ export const AuthProvider = ({ children }) => {
   useEffect(() => {
     const checkAuth = async () => {
       const token = getAuthToken();
-      if (token) {
+      const storedUser = localStorage.getItem('user');
+      
+      if (token && storedUser) {
         try {
-          const response = await authAPI.getProfile();
+          // For dual auth, we might not have a profile endpoint for hosts
+          // So we'll use the stored user data
+          const userData = JSON.parse(storedUser);
           dispatch({
             type: 'LOGIN_SUCCESS',
-            payload: { user: response.data.data.user },
+            payload: { user: userData }
           });
         } catch (error) {
-          // Token is invalid
+          console.error('Auth check error:', error);
+          // Clear invalid data
+          localStorage.removeItem('token');
+          localStorage.removeItem('user');
           setAuthToken(null);
-          dispatch({ type: 'LOGOUT' });
         }
-      } else {
-        dispatch({ type: 'SET_LOADING', payload: false });
       }
+      
+      dispatch({ type: 'SET_LOADING', payload: false });
     };
 
     checkAuth();
   }, []);
 
+
+
   const login = async (credentials) => {
     try {
       dispatch({ type: 'SET_LOADING', payload: true });
       const response = await authAPI.login(credentials);
-      const { user, token } = response.data.data;
+      // Handle both response formats: { success, token, user } and { success, data: { token, user } }
+      const token = response.data.token || response.data.data?.token;
+      const user = response.data.user || response.data.data?.user;
 
       setAuthToken(token);
       dispatch({
@@ -87,36 +97,20 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  const signup = async (userData) => {
-    try {
-      console.log('🚀 Frontend: Starting signup with data:', userData);
-      dispatch({ type: 'SET_LOADING', payload: true });
-      const response = await authAPI.signup(userData);
-      console.log('✅ Frontend: Signup response:', response);
-      const { user, token } = response.data.data;
 
-      setAuthToken(token);
-      dispatch({
-        type: 'LOGIN_SUCCESS',
-        payload: { user },
-      });
-
-      toast.success('Account created successfully!');
-      return { success: true };
-    } catch (error) {
-      console.error('❌ Frontend: Signup error:', error);
-      console.error('❌ Frontend: Error response:', error.response?.data);
-      dispatch({ type: 'SET_LOADING', payload: false });
-      const message = error.response?.data?.message || 'Signup failed';
-      toast.error(message);
-      return { success: false, message };
-    }
-  };
 
   const logout = () => {
     setAuthToken(null);
+    localStorage.removeItem('user');
     dispatch({ type: 'LOGOUT' });
     toast.success('Logged out successfully');
+  };
+
+  const setUser = (userData) => {
+    dispatch({
+      type: 'LOGIN_SUCCESS',
+      payload: { user: userData },
+    });
   };
 
   const updateProfile = async (profileData) => {
@@ -153,8 +147,8 @@ export const AuthProvider = ({ children }) => {
   const value = {
     ...state,
     login,
-    signup,
     logout,
+    setUser,
     updateProfile,
     changePassword,
   };

@@ -33,7 +33,13 @@ const eventSchema = new mongoose.Schema({
   createdBy: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
-    required: [true, 'Event must have an organizer']
+    required: false  // Can be null for host-created events
+  },
+  hostEventId: {
+    type: String,
+    ref: 'EventHost',
+    required: false,  // Only for host-created events
+    index: true
   },
   isActive: {
     type: Boolean,

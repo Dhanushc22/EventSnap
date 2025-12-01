@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useDropzone } from 'react-dropzone';
 import { eventsAPI, photosAPI } from '../services/api';
-import { Upload, Camera, X, User, Mail, MessageSquare, CheckCircle, AlertCircle, CameraOff, RotateCcw } from 'lucide-react';
+import { Upload, Camera, X, User, Mail, MessageSquare, CheckCircle, AlertCircle, CameraOff, RotateCcw, Video, Square, Play, Pause } from 'lucide-react';
 import LoadingSpinner from '../components/LoadingSpinner';
 import toast from 'react-hot-toast';
 import { format } from 'date-fns';
@@ -23,9 +23,13 @@ const PhotoUpload = () => {
   const [showCamera, setShowCamera] = useState(false);
   const [cameraStream, setCameraStream] = useState(null);
   const [facingMode, setFacingMode] = useState('environment'); // 'user' for front, 'environment' for back
+  const [isRecording, setIsRecording] = useState(false);
+  const [recordedChunks, setRecordedChunks] = useState([]);
+  const [mediaRecorder, setMediaRecorder] = useState(null);
   
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
+  const mediaRecorderRef = useRef(null);
 
   // Fetch event details
   const {
@@ -205,8 +209,11 @@ const PhotoUpload = () => {
       if (cameraStream) {
         cameraStream.getTracks().forEach(track => track.stop());
       }
+      if (mediaRecorderRef.current && isRecording) {
+        mediaRecorderRef.current.stop();
+      }
     };
-  }, [cameraStream]);
+  }, [cameraStream, isRecording]);
 
   // Cleanup object URLs on unmount
   React.useEffect(() => {
@@ -216,6 +223,49 @@ const PhotoUpload = () => {
       });
     };
   }, [selectedFiles]);
+
+  // Start video recording
+  const startRecording = () => {
+    if (videoRef.current && cameraStream) {
+      const chunks = [];
+      const recorder = new MediaRecorder(cameraStream, {
+        mimeType: 'video/webm;codecs=vp9'
+      });
+
+      recorder.ondataavailable = (event) => {
+        chunks.push(event.data);
+      };
+
+      recorder.onstop = () => {
+        const blob = new Blob(chunks, { type: 'video/webm' });
+        const file = new File([blob], `video-${Date.now()}.webm`, {
+          type: 'video/webm',
+          lastModified: Date.now()
+        });
+
+        const newFile = {
+          file,
+          preview: URL.createObjectURL(blob),
+          id: Math.random().toString(36).substr(2, 9),
+          type: 'video'
+        };
+
+        setSelectedFiles(prev => [...prev, newFile]);
+        toast.success('Video captured!');
+      };
+
+      mediaRecorderRef.current = recorder;
+      recorder.start();
+      setIsRecording(true);
+    }
+  };
+
+  const stopRecording = () => {
+    if (mediaRecorderRef.current && isRecording) {
+      mediaRecorderRef.current.stop();
+      setIsRecording(false);
+    }
+  };
 
   if (eventLoading) return <LoadingSpinner />;
   
@@ -274,18 +324,17 @@ const PhotoUpload = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
+    <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white">
       {/* Participant Mode Indicator */}
       {isParticipantMode && (
-        <div className="bg-blue-50 border-b border-blue-200 px-4 py-2">
+        <div className="bg-blue-500 text-white px-4 py-3 sticky top-0 z-10 shadow-md">
           <div className="max-w-4xl mx-auto flex justify-between items-center">
-            <div className="flex items-center text-sm text-blue-700">
-              <span className="font-medium">Event Participant Mode</span>
-              <span className="ml-2 text-blue-600">- Upload photos to this event</span>
+            <div className="flex items-center text-sm">
+              <span className="font-semibold">📸 Event Participant Mode</span>
             </div>
             <button
               onClick={exitParticipantMode}
-              className="text-xs text-blue-600 hover:text-blue-800 underline"
+              className="text-xs bg-white bg-opacity-20 hover:bg-opacity-30 px-3 py-1 rounded-full transition-colors"
             >
               Exit
             </button>
@@ -293,157 +342,97 @@ const PhotoUpload = () => {
         </div>
       )}
       
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
         {/* Event Header */}
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">{event.title}</h1>
-          <p className="text-gray-600 mb-1">
+          <h1 className="text-4xl sm:text-5xl font-bold text-gray-900 mb-3">
+            {event.title}
+          </h1>
+          <p className="text-gray-600 text-lg mb-2">
             Organized by {event.organizer}
           </p>
-          <p className="text-sm text-gray-500">
+          <p className="text-sm text-gray-500 font-medium">
             {format(new Date(event.date), 'PPP')}
           </p>
           {event.description && (
-            <p className="text-gray-600 mt-4 max-w-2xl mx-auto">
+            <p className="text-gray-700 mt-5 max-w-2xl mx-auto text-base leading-relaxed">
               {event.description}
             </p>
           )}
         </div>
 
-        <div className="bg-white rounded-lg shadow-md p-6">
-          <h2 className="text-xl font-semibold text-gray-900 mb-6 flex items-center">
-            <Camera className="h-6 w-6 mr-2" />
-            Share Your Photos
+        {/* Main Card */}
+        <div className="bg-white rounded-2xl shadow-lg p-6 sm:p-8">
+          <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-8 flex items-center justify-center">
+            <Camera className="h-8 w-8 mr-3 text-blue-500" />
+            Share Your Moments
           </h2>
-
-          {/* Uploader Info Form */}
-          <div className="grid md:grid-cols-2 gap-4 mb-6">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Your Name (Optional)
-              </label>
-              <div className="relative">
-                <User className="absolute left-3 top-3 h-5 w-5 text-gray-400" />
-                <input
-                  type="text"
-                  name="name"
-                  value={uploaderInfo.name}
-                  onChange={handleInputChange}
-                  className="pl-10 input"
-                  placeholder="Enter your name"
-                />
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Your Email (Optional)
-              </label>
-              <div className="relative">
-                <Mail className="absolute left-3 top-3 h-5 w-5 text-gray-400" />
-                <input
-                  type="email"
-                  name="email"
-                  value={uploaderInfo.email}
-                  onChange={handleInputChange}
-                  className="pl-10 input"
-                  placeholder="Enter your email"
-                />
-              </div>
-            </div>
-
-            <div className="md:col-span-2">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Caption (Optional)
-              </label>
-              <div className="relative">
-                <MessageSquare className="absolute left-3 top-3 h-5 w-5 text-gray-400" />
-                <textarea
-                  name="caption"
-                  value={uploaderInfo.caption}
-                  onChange={handleInputChange}
-                  rows={3}
-                  className="pl-10 input resize-none"
-                  placeholder="Add a caption for your photos..."
-                />
-              </div>
-            </div>
-          </div>
-
-          {/* Camera and Upload Options */}
-          <div className="space-y-4 mb-6">
-            {/* Camera Controls */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <button
-                onClick={showCamera ? stopCamera : startCamera}
-                className={`flex items-center justify-center p-4 rounded-lg border-2 transition-colors ${
-                  showCamera 
-                    ? 'border-red-300 bg-red-50 text-red-700 hover:bg-red-100' 
-                    : 'border-blue-300 bg-blue-50 text-blue-700 hover:bg-blue-100'
-                }`}
-              >
-                {showCamera ? (
-                  <>
-                    <CameraOff className="h-6 w-6 mr-2" />
-                    Close Camera
-                  </>
-                ) : (
-                  <>
-                    <Camera className="h-6 w-6 mr-2" />
-                    Open Camera
-                  </>
-                )}
-              </button>
-
-              <div
-                {...getRootProps()}
-                className={`flex items-center justify-center p-4 rounded-lg border-2 border-dashed cursor-pointer transition-colors ${
-                  isDragActive
-                    ? isDragReject
-                      ? 'border-red-300 bg-red-50'
-                      : 'border-blue-300 bg-blue-50'
-                    : 'border-gray-300 hover:border-gray-400 bg-gray-50'
-                }`}
-              >
-                <input {...getInputProps()} />
-                <Upload className="h-6 w-6 mr-2 text-gray-600" />
-                <span className="text-gray-700">Choose Files</span>
-              </div>
-            </div>
-          </div>
 
           {/* Camera Interface */}
           {showCamera && (
-            <div className="mb-6 bg-black rounded-lg overflow-hidden">
-              <div className="relative">
+            <div className="mb-8 bg-black rounded-2xl overflow-hidden shadow-xl">
+              <div className="relative bg-black">
                 <video
                   ref={videoRef}
                   autoPlay
                   playsInline
                   muted
-                  className="w-full h-64 sm:h-80 object-cover"
+                  className="w-full h-96 sm:h-[500px] object-cover"
                 />
                 <canvas ref={canvasRef} className="hidden" />
                 
+                {/* Recording Indicator */}
+                {isRecording && (
+                  <div className="absolute top-4 right-4 flex items-center space-x-2 bg-red-500 text-white px-4 py-2 rounded-full">
+                    <div className="w-3 h-3 bg-white rounded-full animate-pulse"></div>
+                    <span className="text-sm font-semibold">Recording</span>
+                  </div>
+                )}
+                
                 {/* Camera Controls Overlay */}
-                <div className="absolute bottom-4 left-0 right-0 flex justify-center items-center space-x-4">
+                <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black to-transparent p-6 flex justify-center items-center space-x-4">
+                  {/* Switch Camera Button */}
                   <button
                     onClick={switchCamera}
-                    className="bg-white bg-opacity-20 hover:bg-opacity-30 text-white p-3 rounded-full transition-colors"
+                    className="bg-white bg-opacity-30 hover:bg-opacity-50 text-white p-3 rounded-full transition-all transform hover:scale-110"
+                    title="Switch Camera"
                   >
                     <RotateCcw className="h-6 w-6" />
                   </button>
                   
+                  {/* Record/Stop Video Button */}
+                  {!isRecording ? (
+                    <button
+                      onClick={startRecording}
+                      className="bg-red-500 hover:bg-red-600 text-white p-4 rounded-full shadow-lg transition-all transform hover:scale-110"
+                      title="Start Recording"
+                    >
+                      <Video className="h-7 w-7" />
+                    </button>
+                  ) : (
+                    <button
+                      onClick={stopRecording}
+                      className="bg-red-500 hover:bg-red-600 text-white p-4 rounded-full shadow-lg transition-all transform hover:scale-110 animate-pulse"
+                      title="Stop Recording"
+                    >
+                      <Square className="h-7 w-7" />
+                    </button>
+                  )}
+                  
+                  {/* Capture Photo Button */}
                   <button
                     onClick={capturePhoto}
-                    className="bg-white hover:bg-gray-100 text-gray-900 p-4 rounded-full shadow-lg transition-colors"
+                    className="bg-blue-500 hover:bg-blue-600 text-white p-4 rounded-full shadow-lg transition-all transform hover:scale-110"
+                    title="Capture Photo"
                   >
-                    <Camera className="h-8 w-8" />
+                    <Camera className="h-7 w-7" />
                   </button>
                   
+                  {/* Close Camera Button */}
                   <button
                     onClick={stopCamera}
-                    className="bg-red-500 bg-opacity-80 hover:bg-opacity-100 text-white p-3 rounded-full transition-colors"
+                    className="bg-gray-700 hover:bg-gray-800 text-white p-3 rounded-full transition-all transform hover:scale-110"
+                    title="Close Camera"
                   >
                     <X className="h-6 w-6" />
                   </button>
@@ -452,32 +441,114 @@ const PhotoUpload = () => {
             </div>
           )}
 
-          {/* File Drop Zone (when camera is not active) */}
+          {/* Info Form */}
+          {!showCamera && (
+            <div className="grid md:grid-cols-2 gap-4 mb-8">
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-3">
+                  Your Name
+                </label>
+                <div className="relative">
+                  <User className="absolute left-4 top-4 h-5 w-5 text-gray-400" />
+                  <input
+                    type="text"
+                    name="name"
+                    value={uploaderInfo.name}
+                    onChange={handleInputChange}
+                    className="w-full pl-12 pr-4 py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:outline-none transition-colors"
+                    placeholder="Enter your name"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-3">
+                  Your Email
+                </label>
+                <div className="relative">
+                  <Mail className="absolute left-4 top-4 h-5 w-5 text-gray-400" />
+                  <input
+                    type="email"
+                    name="email"
+                    value={uploaderInfo.email}
+                    onChange={handleInputChange}
+                    className="w-full pl-12 pr-4 py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:outline-none transition-colors"
+                    placeholder="Enter your email"
+                  />
+                </div>
+              </div>
+
+              <div className="md:col-span-2">
+                <label className="block text-sm font-semibold text-gray-700 mb-3">
+                  Add a Caption (Optional)
+                </label>
+                <div className="relative">
+                  <MessageSquare className="absolute left-4 top-4 h-5 w-5 text-gray-400" />
+                  <textarea
+                    name="caption"
+                    value={uploaderInfo.caption}
+                    onChange={handleInputChange}
+                    rows={3}
+                    className="w-full pl-12 pr-4 py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:outline-none transition-colors resize-none"
+                    placeholder="Share your thoughts about this moment..."
+                  />
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Upload and Camera Options */}
+          {!showCamera && (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
+              <button
+                onClick={startCamera}
+                className="flex items-center justify-center p-5 rounded-xl bg-gradient-to-r from-blue-500 to-blue-600 text-white font-semibold hover:shadow-lg transition-all transform hover:scale-105 active:scale-95"
+              >
+                <Camera className="h-6 w-6 mr-3" />
+                Open Camera
+              </button>
+
+              <div
+                {...getRootProps()}
+                className={`flex items-center justify-center p-5 rounded-xl border-3 border-dashed font-semibold cursor-pointer transition-all transform ${
+                  isDragActive
+                    ? 'border-blue-500 bg-blue-50 text-blue-600 scale-105'
+                    : 'border-gray-300 hover:border-gray-400 bg-gray-50 text-gray-700 hover:scale-105'
+                }`}
+              >
+                <input {...getInputProps()} />
+                <Upload className="h-6 w-6 mr-3" />
+                Upload Files
+              </div>
+            </div>
+          )}
+
+          {/* File Drop Zone */}
           {!showCamera && (
             <div
               {...getRootProps()}
-              className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors ${
+              className={`border-3 border-dashed rounded-xl p-8 text-center transition-all ${
                 isDragActive
                   ? isDragReject
-                    ? 'border-red-300 bg-red-50'
-                    : 'border-blue-300 bg-blue-50'
+                    ? 'border-red-400 bg-red-50'
+                    : 'border-blue-400 bg-blue-50'
                   : 'border-gray-300 hover:border-gray-400'
               }`}
             >
               <input {...getInputProps()} />
-              <Upload className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+              <Upload className="h-16 w-16 text-gray-400 mx-auto mb-4" />
               
               {isDragActive ? (
-                <p className="text-lg text-gray-600">
-                  {isDragReject ? 'Invalid file type' : 'Drop your photos here...'}
+                <p className="text-lg font-semibold text-gray-700">
+                  {isDragReject ? '❌ Invalid file type' : '📸 Drop your photos here...'}
                 </p>
               ) : (
                 <div>
-                  <p className="text-lg text-gray-600 mb-2">
-                    Drag and drop your photos here, or click to browse
+                  <p className="text-lg font-semibold text-gray-700 mb-2">
+                    Drag and drop photos here
                   </p>
                   <p className="text-sm text-gray-500">
-                    Supports JPEG, PNG, WebP up to 10MB each
+                    Or click to browse • JPEG, PNG, WebP • Up to 10MB each
                   </p>
                 </div>
               )}
@@ -486,25 +557,34 @@ const PhotoUpload = () => {
 
           {/* Selected Files Preview */}
           {selectedFiles.length > 0 && (
-            <div className="mt-6">
-              <h3 className="text-lg font-medium text-gray-900 mb-4">
-                Selected Photos ({selectedFiles.length})
+            <div className="mt-8">
+              <h3 className="text-xl font-bold text-gray-900 mb-6">
+                📁 Selected ({selectedFiles.length})
               </h3>
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-                {selectedFiles.map(({ id, file, preview }) => (
+                {selectedFiles.map(({ id, file, preview, type }) => (
                   <div key={id} className="relative group">
-                    <img
-                      src={preview}
-                      alt={file.name}
-                      className="w-full h-24 object-cover rounded-lg"
-                    />
+                    <div className="relative h-24 bg-gray-200 rounded-lg overflow-hidden">
+                      {type === 'video' ? (
+                        <div className="w-full h-full flex items-center justify-center bg-black">
+                          <Video className="h-8 w-8 text-white" />
+                        </div>
+                      ) : (
+                        <img
+                          src={preview}
+                          alt={file.name}
+                          className="w-full h-full object-cover"
+                        />
+                      )}
+                      <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-30 transition-all"></div>
+                    </div>
                     <button
                       onClick={() => removeFile(id)}
-                      className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                      className="absolute -top-2 -right-2 bg-red-500 hover:bg-red-600 text-white rounded-full p-2 shadow-lg opacity-0 group-hover:opacity-100 transition-opacity"
                     >
                       <X className="h-4 w-4" />
                     </button>
-                    <p className="text-xs text-gray-500 mt-1 truncate">
+                    <p className="text-xs text-gray-600 mt-2 truncate font-medium">
                       {file.name}
                     </p>
                   </div>
@@ -515,21 +595,21 @@ const PhotoUpload = () => {
 
           {/* Upload Button */}
           {selectedFiles.length > 0 && (
-            <div className="mt-6 text-center">
+            <div className="mt-8">
               <button
                 onClick={handleUpload}
                 disabled={uploadStatus === 'uploading'}
-                className="btn btn-primary disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white font-bold py-4 px-6 rounded-xl shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed transition-all transform hover:scale-105 active:scale-95 flex items-center justify-center"
               >
                 {uploadStatus === 'uploading' ? (
                   <>
-                    <LoadingSpinner size="small" className="mr-2" />
-                    Uploading Photos...
+                    <LoadingSpinner size="small" className="mr-3" />
+                    Uploading ({selectedFiles.length})...
                   </>
                 ) : (
                   <>
-                    <Upload className="h-5 w-5 mr-2" />
-                    Upload {selectedFiles.length} Photo{selectedFiles.length > 1 ? 's' : ''}
+                    <Upload className="h-6 w-6 mr-3" />
+                    Upload {selectedFiles.length} Item{selectedFiles.length > 1 ? 's' : ''}
                   </>
                 )}
               </button>
@@ -538,10 +618,10 @@ const PhotoUpload = () => {
         </div>
 
         {/* Gallery Link */}
-        <div className="text-center mt-8">
+        <div className="text-center mt-10">
           <a
             href={`/gallery/${event.eventId}`}
-            className="text-blue-600 hover:text-blue-500 font-medium"
+            className="inline-block text-blue-600 hover:text-blue-700 font-bold text-lg transition-colors"
           >
             View Event Gallery →
           </a>
