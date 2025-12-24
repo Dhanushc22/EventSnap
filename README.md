@@ -51,7 +51,7 @@
 
 ### Landing Page
 <div align="center">
-  <img src="screenshots/landing-page.png" alt="Landing Page" width="800">
+  <img src="https://github.com/Dhanushc22/EventSnap/blob/master/screenshots/Admin%20Dashboard.jpeg" alt="Landing Page" width="800">
   <p><em>Beautiful landing page with glassmorphic design and gradient animations</em></p>
 </div>
 
