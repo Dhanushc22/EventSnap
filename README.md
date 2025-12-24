@@ -63,7 +63,7 @@
 
 ### Event Details & Photo Management
 <div align="center">
-  <img src="[screenshots/event-photos.png](https://github.com/Dhanushc22/EventSnap/blob/master/screenshots/Event%20Photos.jpeg)" alt="Event Photos" width="800">
+  <img src="https://github.com/Dhanushc22/EventSnap/blob/master/screenshots/Event%20Photos.jpeg" alt="Event Photos" width="800">
   <p><em>View and moderate photos with approve/reject actions</em></p>
 </div>
 
