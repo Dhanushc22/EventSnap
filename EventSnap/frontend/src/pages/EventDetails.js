@@ -90,11 +90,11 @@ const EventDetails = () => {
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       {/* Event Header */}
-      <div className="bg-white rounded-lg shadow-md p-6 mb-6">
+      <div className="glass-card mb-6">
         <div className="flex justify-between items-start mb-4">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900 mb-2">{event.title}</h1>
-            <div className="flex items-center space-x-4 text-gray-600">
+            <h1 className="text-3xl font-bold text-white mb-2">{event.title}</h1>
+            <div className="flex items-center space-x-4 text-purple-200">
               <div className="flex items-center">
                 <Calendar className="h-5 w-5 mr-1" />
                 <span>{format(new Date(event.date), 'PPP')}</span>
@@ -129,22 +129,22 @@ const EventDetails = () => {
         </div>
         
         {event.description && (
-          <p className="text-gray-600 mb-4">{event.description}</p>
+          <p className="text-purple-200 mb-4">{event.description}</p>
         )}
       </div>
 
       {/* Tabs */}
       <div className="mb-6">
-        <div className="border-b border-gray-200">
+        <div className="border-b border-white/20">
           <nav className="-mb-px flex space-x-8">
             {['overview', 'photos', 'qr-code'].map((tab) => (
               <button
                 key={tab}
                 onClick={() => setSelectedTab(tab)}
-                className={`py-2 px-1 border-b-2 font-medium text-sm ${
+                className={`py-2 px-1 border-b-2 font-medium text-sm transition-all ${
                   selectedTab === tab
-                    ? 'border-blue-500 text-blue-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                    ? 'border-purple-400 text-purple-300'
+                    : 'border-transparent text-purple-200/70 hover:text-purple-200 hover:border-purple-400/50'
                 }`}
               >
                 {tab.charAt(0).toUpperCase() + tab.slice(1).replace('-', ' ')}
@@ -157,17 +157,17 @@ const EventDetails = () => {
       {/* Tab Content */}
       {selectedTab === 'overview' && (
         <div className="grid md:grid-cols-3 gap-6">
-          <div className="bg-blue-50 p-6 rounded-lg">
-            <h3 className="font-semibold text-blue-900 mb-2">Total Photos</h3>
-            <p className="text-3xl font-bold text-blue-600">{event.stats?.totalPhotos || 0}</p>
+          <div className="glass-card bg-gradient-to-br from-blue-500/20 to-blue-600/20 hover:from-blue-500/30 hover:to-blue-600/30 transition-all">
+            <h3 className="font-semibold text-blue-200 mb-2">Total Photos</h3>
+            <p className="text-3xl font-bold text-blue-100">{event.stats?.totalPhotos || 0}</p>
           </div>
-          <div className="bg-green-50 p-6 rounded-lg">
-            <h3 className="font-semibold text-green-900 mb-2">Approved</h3>
-            <p className="text-3xl font-bold text-green-600">{event.stats?.approvedPhotos || 0}</p>
+          <div className="glass-card bg-gradient-to-br from-green-500/20 to-green-600/20 hover:from-green-500/30 hover:to-green-600/30 transition-all">
+            <h3 className="font-semibold text-green-200 mb-2">Approved</h3>
+            <p className="text-3xl font-bold text-green-100">{event.stats?.approvedPhotos || 0}</p>
           </div>
-          <div className="bg-yellow-50 p-6 rounded-lg">
-            <h3 className="font-semibold text-yellow-900 mb-2">Event ID</h3>
-            <p className="text-lg font-mono text-yellow-800">{event.eventId}</p>
+          <div className="glass-card bg-gradient-to-br from-amber-500/20 to-amber-600/20 hover:from-amber-500/30 hover:to-amber-600/30 transition-all">
+            <h3 className="font-semibold text-amber-200 mb-2">Event ID</h3>
+            <p className="text-lg font-mono text-amber-100">{event.eventId}</p>
           </div>
         </div>
       )}
@@ -175,13 +175,13 @@ const EventDetails = () => {
       {selectedTab === 'photos' && (
         <div>
           {photos.length === 0 ? (
-            <div className="text-center py-12 bg-white rounded-lg">
-              <Camera className="h-16 w-16 text-gray-300 mx-auto mb-4" />
-              <h3 className="text-lg font-medium text-gray-900 mb-2">No photos yet</h3>
-              <p className="text-gray-500">Photos will appear here once participants start uploading</p>
+            <div className="text-center py-12 glass-card">
+              <Camera className="h-16 w-16 text-purple-300 mx-auto mb-4" />
+              <h3 className="text-lg font-medium text-white mb-2">No photos yet</h3>
+              <p className="text-purple-200">Photos will appear here once participants start uploading</p>
             </div>
           ) : (
-            <div className="bg-white rounded-lg shadow-md p-6">
+            <div className="glass-card">
               <h3 className="text-lg font-semibold mb-4">Event Photos ({photos.length})</h3>
               <div className="photo-grid">
                 {photos.map((photo) => (
@@ -267,7 +267,7 @@ const EventDetails = () => {
       )}
 
       {selectedTab === 'qr-code' && (
-        <div className="bg-white rounded-lg shadow-md p-6">
+        <div className="glass-card">
           <h3 className="text-lg font-semibold mb-4 flex items-center">
             <QrCode className="h-6 w-6 mr-2" />
             QR Code for Photo Upload
@@ -275,18 +275,18 @@ const EventDetails = () => {
           
           <div className="grid md:grid-cols-2 gap-6">
             <div>
-              <p className="text-gray-600 mb-4">
+              <p className="text-purple-200 mb-4">
                 Participants can scan this QR code to directly access the photo upload page for this event.
               </p>
               
               <div className="space-y-2">
                 <div>
-                  <span className="text-sm font-medium text-gray-700">Upload URL:</span>
-                  <p className="text-sm text-blue-600 break-all">{qrInfo?.uploadURL}</p>
+                  <span className="text-sm font-medium text-purple-300">Upload URL:</span>
+                  <p className="text-sm text-blue-300 break-all">{qrInfo?.uploadURL}</p>
                 </div>
                 <div>
-                  <span className="text-sm font-medium text-gray-700">Gallery URL:</span>
-                  <p className="text-sm text-blue-600 break-all">{qrInfo?.galleryURL}</p>
+                  <span className="text-sm font-medium text-purple-300">Gallery URL:</span>
+                  <p className="text-sm text-blue-300 break-all">{qrInfo?.galleryURL}</p>
                 </div>
               </div>
               
@@ -307,7 +307,7 @@ const EventDetails = () => {
                 <img
                   src={event.qrCodeURL}
                   alt="QR Code for event"
-                  className="max-w-xs w-full h-auto border border-gray-200 rounded-lg"
+                  className="max-w-xs w-full h-auto border border-white/20 rounded-lg shadow-xl"
                 />
               )}
             </div>
